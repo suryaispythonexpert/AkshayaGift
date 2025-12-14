@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE VAULT ACCESS: Private File</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background-dark: #081a38; 
+            --grid-line: #1f365d;
+            --text-light: #F5F5F5;
+            --accent-glow: #3b5998; 
+            --pin-color: #FFC700; 
+            --grid-size: 25px;
+            --cover-dark: #000000;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            text-align: center;
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            user-select: none; 
+            /* --- FIX: REMOVED 'overflow: hidden;' HERE --- */
+
+            background-color: var(--background-dark);
+            background-image: 
+                linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+            background-size: var(--grid-size) var(--grid-size);
+        }
+
+        /* --- VAULT COVER/ANIMATION STYLES (Keep fixed position) --- */
+        #vault-cover {
+            position: fixed; /* Keep cover fixed over content */
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--cover-dark);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease-in-out;
+            pointer-events: all;
+        }
+
+        #vault-cover.opening .cover-half {
+            transform: scaleX(0); 
+            transition: transform 1.5s cubic-bezier(0.8, 0.2, 0.2, 0.8);
+        }
+        
+        #vault-cover.opened {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .cover-half {
+            position: absolute;
+            top: 0;
+            width: 50vw;
+            height: 100vh;
+            background-color: var(--cover-dark);
+            transition: transform 1.5s ease-out;
+            transform-origin: center;
+        }
+
+        #cover-left { left: 0; }
+        #cover-right { right: 0; }
+        
+        #gift-container {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            margin-bottom: 20px; 
+            z-index: 101; 
+        }
+        #gift-container:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+        }
+        #gift-box {
+            max-width: 90%;
+            max-height: 50vh;
+            border-radius: 10px;
+            box-shadow: 0 0 40px rgba(59, 89, 152, 0.5); 
+            display: block;
+        }
+
+        #instruction-text-initial {
+            color: var(--text-light);
+            font-size: clamp(1em, 3vw, 1.8em);
+            font-weight: 700;
+            line-height: 1.5; 
+            text-shadow: 0 0 8px var(--accent-glow);
+            z-index: 101;
+        }
+
+
+        /* --- FINAL CONTENT STYLES --- */
+        #main-content {
+            /* Position changed to relative/static layout to allow scrolling */
+            position: relative; 
+            z-index: 50;
+            width: 100%;
+            /* min-height: 100vh is fine, as it will enforce minimum size */
+            min-height: 100vh; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        h1 {
+            font-family: 'Montserrat', sans-serif; 
+            text-transform: uppercase; 
+            color: var(--text-light);
+            font-size: clamp(3em, 10vw, 6em);
+            margin-bottom: 50px; 
+            font-weight: 900; 
+            letter-spacing: -2px; 
+            text-shadow: none; 
+        }
+        
+        #final-qr-image {
+            max-width: 90%;
+            max-height: 60vh;
+            border-radius: 10px;
+            box-shadow: 0 0 40px rgba(59, 89, 152, 0.5); 
+            margin-bottom: 40px;
+        }
+        
+        #instruction-text {
+            color: var(--pin-color); 
+            font-size: clamp(1.4em, 5vw, 2.5em);
+            margin-top: 20px; 
+            font-weight: 700;
+            line-height: 1.5; 
+            text-shadow: 0 0 8px var(--pin-color);
+        }
+        
+        /* --- Confetti Styles (Keep fixed) --- */
+        #confetti-zone { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; overflow: hidden; }
+        .confetti { position: absolute; opacity: 0; background-color: transparent; transform-origin: center; }
+        .shape-circle { border-radius: 50%; }
+        .shape-square { border-radius: 0; }
+        .shape-triangle { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+        .shape-rectangle { border-radius: 1px; }
+        .confetti.animate { animation: burst 3s ease-out forwards; }
+        @keyframes burst {
+            0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+            100% { transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(0.5); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="confetti-zone"></div>
+
+    <div id="vault-cover">
+        <div id="gift-container" onclick="openGift()">
+            <img id="gift-box" 
+                 src="https://i.postimg.cc/CxdRLPvZ/Gemini-Generated-Image-y44vcuy44vcuy44v-removebg-preview.png" 
+                 alt="A wrapped gift box. Click to open!">
+        </div>
+        <p id="instruction-text-initial" class="text-glow">Click the gift to open the seal!</p>
+        
+        <div id="cover-left" class="cover-half"></div>
+        <div id="cover-right" class="cover-half"></div>
+    </div>
+
+    <div id="main-content">
+        <h1>A GIFT FOR AKSHAYA</h1>
+        
+        <img id="final-qr-image" 
+             src="https://i.postimg.cc/mD0YQcrJ/qrcode-ai-33291a33-0b89-4370-8e03-90e4a49ae772.png" 
+             alt="Access Granted QR Code">
+
+        <p id="instruction-text" class="text-glow">🎁 **YOUR GIFT IS READY!** 🎁<br>Scan the code above to claim your surprise!</p>
+    </div>
+    
+    <script>
+        const vaultCover = document.getElementById('vault-cover');
+        const coverLeft = document.getElementById('cover-left');
+        const coverRight = document.getElementById('cover-right');
+        const giftContainer = document.getElementById('gift-container');
+        const mainContent = document.getElementById('main-content');
+        const confettiZone = document.getElementById('confetti-zone');
+        
+        let isOpened = false;
+        
+        // --- STEP 1: INITIAL CLICK TO TRIGGER VAULT OPENING ANIMATION ---
+        function openGift() {
+            if (isOpened) return;
+
+            // 1. Hide the initial visible elements
+            giftContainer.style.display = 'none';
+            document.getElementById('instruction-text-initial').style.display = 'none';
+
+            // 2. Start the visual opening animation
+            coverLeft.style.transform = 'scaleX(0)';
+            coverRight.style.transform = 'scaleX(0)';
+            
+            // 3. After the animation finishes (1.5 seconds)
+            setTimeout(() => {
+                vaultCover.style.opacity = '0'; // Fade out the cover completely
+                
+                // 4. DIRECTLY REVEAL THE FINAL CONTENT
+                revealGift();
+            }, 1500);
+        }
+
+        function revealGift() {
+            isOpened = true;
+            
+            // Show the main content block
+            mainContent.style.opacity = '1';
+            
+            // Launch confetti for celebration
+            launchConfetti();
+        }
+        
+        
+        // --- Confetti Logic (Unchanged) ---
+        const CONFETTI_COLORS = ['#FFC700', '#FF00A0', '#00A0FF', '#FFFFFF', '#FF4F00', '#00FF00'];
+        const SHAPES = ['circle', 'square', 'triangle', 'rectangle'];
+        const COUNT = 180; 
+
+        function launchConfetti() {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            
+            for (let i = 0; i < COUNT; i++) {
+                const confetti = document.createElement('div');
+                
+                const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+                let size = Math.random() * 10 + 10; 
+                
+                confetti.classList.add('confetti', `shape-${shape}`);
+                confetti.style.backgroundColor = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+                
+                if (shape === 'rectangle') {
+                    confetti.style.width = `${size * 2.5}px`;
+                    confetti.style.height = `${size}px`;
+                } else {
+                    confetti.style.width = `${size}px`;
+                    confetti.style.height = `${size}px`;
+                }
+                
+                confetti.style.left = `${centerX}px`;
+                confetti.style.top = `${centerY}px`;
+
+                const finalX = (Math.random() * window.innerWidth * 1.5) - (window.innerWidth * 0.75);
+                const finalY = (Math.random() * window.innerHeight * 1.5) - (window.innerHeight * 0.75);
+                const rotation = Math.random() * 1000 - 500;
+                
+                confetti.style.setProperty('--x', `${finalX}px`);
+                confetti.style.setProperty('--y', `${finalY}px`);
+                confetti.style.setProperty('--r', `${rotation}deg`);
+
+                confetti.style.animationDelay = `${Math.random() * 0.3}s`;
+                
+                confettiZone.appendChild(confetti);
+
+                setTimeout(() => {
+                    confetti.classList.add('animate');
+                }, 10);
+                
+                setTimeout(() => {
+                    confetti.remove();
+                }, 3100);
+            }
+        }
+    </script>
+</body>
+</html>
